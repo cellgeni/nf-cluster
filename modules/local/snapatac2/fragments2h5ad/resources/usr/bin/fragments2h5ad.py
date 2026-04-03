@@ -51,6 +51,14 @@ def main(
         default=None,
         help="If specified, the sample key added to .obs.",
     ),
+    add_sample_key_to_obs: bool = typer.Option(
+        default=False,
+        help="Whether to add the sample key to .obs. This is useful when the input fragment file contains data from multiple samples and the sample key is used to distinguish them.",
+    ),
+    delimiter: str = typer.Option(
+        default="___",
+        help="Delimiters used to separate sample key from cell barcode in the input fragment file when the input fragment file contains data from multiple samples. The sample key is expected to be prefixed to the cell barcode with the specified delimiters. For example, if the sample key is 'sample1' and the cell barcode is 'AAACGGGAGATAGGTC-1', then the cell barcode in the input fragment file should be 'sample1___AAACGGGAGATAGGTC-1' if the delimiters are set to '___'.",
+    ),
     n_jobs: int = typer.Option(default=-1, help="Number of parallel jobs to use"),
 ):
     # Get the genome object from the string
@@ -89,6 +97,17 @@ def main(
     # Add sample key to .obs if specified
     if sample_key is not None:
         adata.obs["sample"] = sample_key
+
+    if sample_key is not None and add_sample_key_to_obs:
+        if delimiter is None:
+            raise typer.BadParameter(
+                "Delimiter must be specified when add_sample_key_to_obs is True"
+            )
+        adata.obs.index = (
+            adata.obs.index.astype(str)
+            + str(delimiter)
+            + adata.obs["sample"].astype(str)
+        )
 
     typer.echo(f"Fragments from {input} have been converted to {output}")
     adata.write_h5ad(output)
