@@ -47,6 +47,10 @@ def main(
         default=None,
         help="A list of chromosome names that are considered mitochondrial DNA. This is used to compute the fraction of mitochondrial DNA",
     ),
+    sample_key: str = typer.Option(
+        default=None,
+        help="If specified, the sample key added to .obs.",
+    ),
     n_jobs: int = typer.Option(default=-1, help="Number of parallel jobs to use"),
 ):
     # Get the genome object from the string
@@ -74,7 +78,6 @@ def main(
     adata = snapatac2.pp.import_fragments(
         input,
         genome,
-        file=output,
         whitelist=whitelist_barcodes if whitelist_barcodes is not None else whitelist,
         min_num_fragments=min_num_fragments,
         sorted_by_barcode=sorted_by_barcode,
@@ -83,8 +86,12 @@ def main(
         n_jobs=n_jobs,
     )
 
+    # Add sample key to .obs if specified
+    if sample_key is not None:
+        adata.obs["sample"] = sample_key
+
     typer.echo(f"Fragments from {input} have been converted to {output}")
-    adata.close()
+    adata.write_h5ad(output)
 
 
 if __name__ == "__main__":

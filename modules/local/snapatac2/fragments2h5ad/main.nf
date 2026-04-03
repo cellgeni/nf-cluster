@@ -32,6 +32,7 @@ process SNAPATAC2_FRAGMENTS2H5AD {
     fragments2h5ad.py \
         \$fragments \
         ${prefix}.h5ad \
+        --sample-key "${meta.id}" \
         $args \
         ${filtered ? "--whitelist \$whitelist" : ""} \
         --n-jobs ${task.cpus}
