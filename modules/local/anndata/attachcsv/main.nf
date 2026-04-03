@@ -15,7 +15,8 @@ process ANNDATA_ATTACHCSV {
     def barcode_column = task.ext.barcode_column ?: 'barcode'
     def entry = task.ext.entry ?: 'obs'
     def prefix = task.ext.prefix ?: "${meta.id}"
-    def metadata_files = metadata.collect { f -> f.toString() }.join(' ')
+    def metadata_list = (metadata instanceof List) ? metadata : [metadata]
+    def metadata_files = metadata_list.collect { f -> f.toString() }.join(' ')
     """
     # Get original metadata
     h5ad export dataframe \
@@ -28,8 +29,8 @@ process ANNDATA_ATTACHCSV {
         duckdb -c "
             COPY (
                 SELECT
-                    original.* EXCLUDE (_index),
-                    new.*
+                    original.*,
+                    new.* EXCLUDE (${barcode_column})
                 FROM 'metadata.csv' AS original
                 LEFT JOIN '\$file' AS new 
                     ON original._index = new.${barcode_column}
@@ -44,6 +45,6 @@ process ANNDATA_ATTACHCSV {
         ${entry} \
         metadata.csv \
         --output ${prefix}.h5ad \
-        --index-column ${barcode_column}
+        --index-column _index
     """
 }
