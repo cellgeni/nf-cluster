@@ -2,6 +2,7 @@ include { SNAPATAC2_FRAGMENTS2H5AD } from '../../../modules/local/snapatac2/frag
 include { AMULET } from '../../../modules/local/amulet'
 include { NORMALIZECELLRANGERMETRICS } from '../../../modules/local/normalizecellrangermetrics'
 include { ANNDATA_ATTACHCSV as ATTACH_CRMETRICS_AMULET } from '../../../modules/local/anndata/attachcsv'
+include { SNAPATAC2_METRICS } from '../../../modules/local/snapatac2/metrics'
 
 workflow ATAC {
 
@@ -56,6 +57,9 @@ workflow ATAC {
         .join( metadata, by: [0], failOnDuplicate: true, failOnMismatch: true )
 
     ATTACH_CRMETRICS_AMULET(h5ad_metadata)
+
+    // STEP4: Calculate additional metrics using SNAPATAC2
+    SNAPATAC2_METRICS( ATTACH_CRMETRICS_AMULET.out.h5ad )
 
     // emit:
     // bam      = SAMTOOLS_SORT.out.bam           // channel: [ val(meta), [ bam ] ]
