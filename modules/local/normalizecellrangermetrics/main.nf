@@ -21,12 +21,12 @@ process NORMALIZECELLRANGERMETRICS {
                 barcode,
                 is_cell AS is__cell_barcode,
                 excluded_reason,
-                atac_raw_reads AS n_raw_reads,
-                atac_dup_reads AS n_dup_reads,
-                atac_chimeric_reads AS n_chimeric_reads,
-                atac_mitochondrial_reads AS n_mitochondrial_reads,
-                atac_fragments AS n_fragments,
-                atac_TSS_fragments AS n_tss_fragments
+                atac_raw_reads AS n_raw_reads_cr,
+                atac_dup_reads AS n_dup_reads_cr,
+                atac_chimeric_reads AS n_chimeric_reads_cr,
+                atac_mitochondrial_reads AS n_mitochondrial_reads_cr,
+                atac_fragments AS n_fragments_cr,
+                atac_TSS_fragments AS n_tss_fragments_cr
             FROM '${cellranger}/per_barcode_metrics.csv'
         ) TO '${prefix}_barcodemetrics.csv' WITH (FORMAT CSV, HEADER TRUE);
         "
@@ -36,15 +36,15 @@ process NORMALIZECELLRANGERMETRICS {
             SELECT
                 barcode,
                 is__cell_barcode,
-                total AS n_raw_reads,
-                duplicates AS n_dup_reads,
-                chimeric AS n_chimeric_reads,
-                mitochondrial AS n_mitochondrial_reads,
-                passed_filters AS n_passed_filters,
-                TSS_fragments AS n_tss_fragments,
-                DNase_sensitive_region_fragments AS n_dnase_sensitive_region_fragments,
-                enhancer_region_fragments AS n_enhancer_region_fragments,
-                promoter_region_fragments AS n_promoter_region_fragments
+                total AS n_raw_reads_cr,
+                duplicates AS n_dup_reads_cr,
+                chimeric AS n_chimeric_reads_cr,
+                mitochondrial AS n_mitochondrial_reads_cr,
+                passed_filters AS n_passed_filters_cr,
+                TSS_fragments AS n_tss_fragments_cr,
+                DNase_sensitive_region_fragments AS n_dnase_sensitive_region_fragments_cr,
+                enhancer_region_fragments AS n_enhancer_region_fragments_cr,
+                promoter_region_fragments AS n_promoter_region_fragments_cr
             FROM '${cellranger}/singlecell.csv'
         ) TO '${prefix}_barcodemetrics.csv' WITH (FORMAT CSV, HEADER TRUE);
         "
