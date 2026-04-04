@@ -30,6 +30,7 @@ workflow {
     // Load files
     sample_table     = params.sample_table ? channel.value( file( params.sample_table, checkIfExists: true ) ): channel.empty()
     autosomes        = params.autosomes ? channel.value( file( params.autosomes, checkIfExists: true ) ): channel.empty()
+    amulet_blacklist = params.amulet_blacklist ? channel.value( file( params.amulet_blacklist, checkIfExists: true ) ): channel.empty()
     blacklist        = params.blacklist ? channel.value( file( params.blacklist, checkIfExists: true ) ): channel.empty()
 
 
@@ -37,6 +38,7 @@ workflow {
     ATAC(
         sample_table,
         autosomes,
+        amulet_blacklist,
         blacklist
     )
 }

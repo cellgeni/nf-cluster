@@ -3,12 +3,16 @@ include { AMULET } from '../../../modules/local/amulet'
 include { NORMALIZECELLRANGERMETRICS } from '../../../modules/local/normalizecellrangermetrics'
 include { ANNDATA_ATTACHCSV as ATTACH_CRMETRICS_AMULET } from '../../../modules/local/anndata/attachcsv'
 include { SNAPATAC2_METRICS } from '../../../modules/local/snapatac2/metrics'
+include { SNAPATAC2_QUALITYCONTROL } from '../../../modules/local/snapatac2/qualitycontrol'
+include { SNAPATAC2_ADDTILES } from '../../../modules/local/snapatac2/addtiles'
+include { SNAPATAC2_SELECTFEATURES } from '../../../modules/local/snapatac2/selectfeatures'
 
 workflow ATAC {
 
     take:
     sample_table
     autosomes
+    amulet_blacklist
     blacklist
 
     main:
@@ -39,7 +43,7 @@ workflow ATAC {
 
     // STEP1: Run AMULET on each sample
     amulet_input = fragments.join( NORMALIZECELLRANGERMETRICS.out.csv, by: [0], failOnDuplicate: true, failOnMismatch: true )
-    AMULET(amulet_input, autosomes, blacklist)
+    AMULET(amulet_input, autosomes, amulet_blacklist)
 
     // STEP2: Create H5AD files from fragments.tsv.gz
     SNAPATAC2_FRAGMENTS2H5AD( cellranger )
@@ -60,6 +64,15 @@ workflow ATAC {
 
     // STEP4: Calculate additional metrics using SNAPATAC2
     SNAPATAC2_METRICS( ATTACH_CRMETRICS_AMULET.out.h5ad )
+
+    // STEP5: Filter cells based on QC metrics
+    SNAPATAC2_QUALITYCONTROL( SNAPATAC2_METRICS.out.h5ad )
+
+    // STEP6: Add tile matrix
+    SNAPATAC2_ADDTILES( SNAPATAC2_QUALITYCONTROL.out.h5ad )
+
+    // STEP7: Select accessible features
+    SNAPATAC2_SELECTFEATURES( SNAPATAC2_ADDTILES.out.h5ad, blacklist )
 
     // emit:
     // bam      = SAMTOOLS_SORT.out.bam           // channel: [ val(meta), [ bam ] ]
