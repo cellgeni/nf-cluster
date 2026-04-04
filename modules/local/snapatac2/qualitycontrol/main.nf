@@ -20,9 +20,6 @@ process SNAPATAC2_QUALITYCONTROL {
     def args = task.ext.args ?: '--amulet-qthresh 0.01 --min-fragments 100 --max-mito-frac 0.3 --mad-thresh 3.5 --mad-key log1p_n_fragments_cr --mad-key frac_mito_reads --mad-key tsse --filter-cells'
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    qualitycontrol.py \\
-        $args \\
-        ${h5ad} \\
-        ${prefix}
+    qualitycontrol.py ${h5ad} ${prefix} ${args}
     """
 }

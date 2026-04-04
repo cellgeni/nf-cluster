@@ -2,6 +2,7 @@
 import os
 from typing import Annotated, Literal
 from pathlib import Path
+from collections import defaultdict
 
 import typer
 import snapatac2 as snap
@@ -71,18 +72,29 @@ def main(
     typer.echo(f"Input h5ad file:\n{adata}")
 
     # Filter AMULET doublets
-    failed_cells = dict()
+    failed_cells = defaultdict(list)
     amulet_mask = np.full(adata.n_obs, True, dtype=bool)
     if "amulet_qvalue" in adata.obs.columns:
         amulet_doublets = adata.obs["amulet_qvalue"] < amulet_qthresh
         failed_cells["amulet"] = adata.obs[amulet_doublets].index.tolist()
         amulet_mask = (~amulet_doublets).to_numpy()
 
+    # Filter cells based on the number of fragments and fraction of mitochondrial reads
+    if "n_fragments_cr" in adata.obs.columns:
+        failed_cells["n_fragments_cr"] = adata.obs[
+            adata.obs["n_fragments_cr"] < min_fragments
+        ].index.tolist()
+
+    if "frac_mito_reads" in adata.obs.columns:
+        failed_cells["frac_mito_reads"] = adata.obs[
+            adata.obs["frac_mito_reads"] > max_mito_frac
+        ].index.tolist()
+
     # Calculate MAD scores and filter cells based on the specified metrics
     for key in mad_key:
         if key in adata.obs.columns:
             adata.obs[f"mad_{key}"] = mad_score(adata.obs[key].to_numpy(), amulet_mask)
-            failed_cells[key] = adata.obs[
+            failed_cells[key] += adata.obs[
                 adata.obs[f"mad_{key}"] > mad_thresh
             ].index.tolist()
 
