@@ -26,6 +26,6 @@ process AMULET {
         ${blacklist} \
         . \
         ${args}
-    cat MultipletProbabilities.txt | tr '\t' ',' > MultipletProbabilities.csv
+    cat MultipletProbabilities.txt | tr '\t' ',' | sed 's/p-value/amulet_pvalue/' | sed 's/q-value/amulet_qvalue/' > MultipletProbabilities.csv
     """
 }
