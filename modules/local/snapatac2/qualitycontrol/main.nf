@@ -12,7 +12,8 @@ process SNAPATAC2_QUALITYCONTROL {
     tuple val(meta), path(h5ad)
 
     output:
-    tuple val(meta), path("*.h5ad"), emit: h5ad
+    tuple val(meta), path("*qc.h5ad"), emit: h5ad
+    tuple val(meta), path("*.png"), emit: png
     tuple val("${task.process}"), val('snapatac2'), eval("python -c 'import snapatac2; print(snapatac2.__version__)'"), topic: versions, emit: versions_snapatac2
 
     script:
@@ -22,6 +23,6 @@ process SNAPATAC2_QUALITYCONTROL {
     qualitycontrol.py \\
         $args \\
         ${h5ad} \\
-        --output-prefix ${prefix}
+        ${prefix}
     """
 }
