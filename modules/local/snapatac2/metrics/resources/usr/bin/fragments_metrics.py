@@ -38,9 +38,9 @@ def main(
     typer.echo(f"Input h5ad file:\n{adata}")
 
     # Calculate a fraction of mitochondrial fragments per cell
-    if {"n_raw_reads", "n_mitochondrial_reads"}.issubset(adata.obs.columns):
-        num = adata.obs["n_mitochondrial_reads"].to_numpy(dtype=float)
-        den = adata.obs["n_raw_reads"].to_numpy(dtype=float)
+    if {"n_raw_reads_cr", "n_mitochondrial_reads_cr"}.issubset(adata.obs.columns):
+        num = adata.obs["n_mitochondrial_reads_cr"].to_numpy(dtype=float)
+        den = adata.obs["n_raw_reads_cr"].to_numpy(dtype=float)
         adata.obs["frac_mito_reads"] = np.divide(
             num,
             den,
@@ -52,24 +52,8 @@ def main(
     snap.metrics.tsse(adata, genomes[genome])
 
     # Calculate log1p of the number of fragments per cell
-    if "n_fragments" in adata.obs.columns:
-        adata.obs["log1p_n_fragments"] = np.log1p(adata.obs["n_fragments"])
-
-    # Calculate z-score like statistic for selected metrics per cell
-    columns = ["frac_mito_reads", "tss_enrichment", "log1p_n_fragments"]
-    for column in columns:
-        if column in adata.obs.columns:
-            x = adata.obs[column].to_numpy()
-            med = np.nanmedian(x)
-            mad = median_abs_deviation(x, scale="normal", nan_policy="omit")
-            num = x - med
-            score = np.zeros_like(num, dtype=float)
-            ok = np.isfinite(mad) and (mad > 1e-8)
-
-            if ok:
-                np.divide(num, mad, out=score, where=True)
-
-            adata.obs[f"mad_score_{column}"] = score
+    if "n_fragments_cr" in adata.obs.columns:
+        adata.obs["log1p_n_fragments_cr"] = np.log1p(adata.obs["n_fragments_cr"])
 
     # Write the output h5ad file
     typer.echo(f"Output h5ad file:\n{adata}")
