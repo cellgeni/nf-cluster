@@ -74,10 +74,9 @@ def main(
     failed_cells = dict()
     amulet_mask = np.full(adata.n_obs, True, dtype=bool)
     if "amulet_qvalue" in adata.obs.columns:
-        failed_cells["amulet"] = adata.obs[
-            adata.obs["amulet_qvalue"] >= amulet_qthresh
-        ].index.tolist()
-        amulet_mask[failed_cells["amulet"]] = False
+        amulet_doublets = adata.obs["amulet_qvalue"] < amulet_qthresh
+        failed_cells["amulet"] = adata.obs[amulet_doublets].index.tolist()
+        amulet_mask = (~amulet_doublets).to_numpy()
 
     # Calculate MAD scores and filter cells based on the specified metrics
     for key in mad_key:
@@ -96,17 +95,17 @@ def main(
         figsize=(5 * (len(vis_cat) + tsee_frag_plot), 5),
     )
     for ax, cat in zip(axes.flatten(), vis_cat):
-        visdf = adata.obs[[cat]]
-        visdf["qcategory"] = "passed"
+        visdf = adata.obs[[cat]].copy()
+        visdf.loc[:, "qcategory"] = "passed"
         visdf.loc[failed_cells[cat], "qcategory"] = "failed"
         sns.histplot(
             visdf,
             x=cat,
             hue="qcategory",
-            kde=True,
             ax=ax,
             palette={"failed": "red", "passed": "tab:blue"},
         )
+        ax.set_title(output_prefix)
         ax.legend_.remove()
 
     # Add filtering results to AnnData object
@@ -136,19 +135,28 @@ def main(
             adata.obs,
             x="log1p_n_fragments_cr",
             y="tsse",
-            hue="quality_control",
             ax=axes.flatten()[-1],
         )
-        axes.flatten()[-1].legend(
-            bbox_to_anchor=(1.02, 1), loc="upper left", borderaxespad=0
-        )
+        axes.flatten()[-1].set_title(output_prefix)
+        handles, labels = axes.flatten()[-1].get_legend_handles_labels()
+        if handles:
+            axes.flatten()[-1].legend(
+                handles,
+                labels,
+                bbox_to_anchor=(1.02, 1),
+                loc="upper left",
+                borderaxespad=0,
+            )
 
     # Save the filtering results visualization    plt.tight_layout()
-    os.makedirs("qc", exist_ok=True)
-    plt.savefig(os.path.join("qc", f"{output_prefix}.png"), bbox_inches="tight")
+    plt.savefig(f"{output_prefix}.png", bbox_inches="tight")
 
     # Save the filtered AnnData object
     if filter_cells:
         adata = adata[adata.obs["quality_control"] == "pass"].copy()
     typer.echo(f"Output h5ad file:\n{adata}")
     adata.write_h5ad(f"{output_prefix}_qc.h5ad")
+
+
+if __name__ == "__main__":
+    app()
