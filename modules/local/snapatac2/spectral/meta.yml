@@ -1,0 +1,49 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/nf-core/modules/master/modules/meta-schema.json
+name: "snapatac2_spectral"
+description: "Compute spectral embedding with SnapATAC2."
+keywords:
+  - snapatac2
+  - spectral
+  - embedding
+tools:
+  - "snapatac2":
+      description: "SnapATAC2: Single-cell epigenomics analysis pipeline."
+      homepage: "https://kzhang.org/SnapATAC2"
+      documentation: "https://kzhang.org/SnapATAC2"
+      tool_dev_url: "https://github.com/kaizhang/SnapATAC2"
+      licence: ["MIT"]
+input:
+  - - meta:
+        type: map
+        description: |
+          Groovy Map containing sample information
+          e.g. `[ id:'sample1' ]`
+    - h5ad:
+        type: file
+        description: Input AnnData file.
+        pattern: "*.h5ad"
+output:
+  h5ad:
+    - - meta:
+          type: map
+          description: |
+            Groovy Map containing sample information
+            e.g. `[ id:'sample1' ]`
+      - "*_spectral.h5ad":
+          type: file
+          description: AnnData file with spectral embedding stored in obsm.
+          pattern: "*.h5ad"
+  versions_snapatac2:
+    - - "${task.process}":
+          type: string
+          description: The name of the process
+      - "snapatac2":
+          type: string
+          description: The name of the tool
+      - "python -c 'import snapatac2; print(snapatac2.__version__)'":
+          type: eval
+          description: The expression to obtain the version of the tool
+authors:
+  - "@claptar"
+maintainers:
+  - "@claptar"
