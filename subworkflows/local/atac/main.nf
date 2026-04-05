@@ -11,6 +11,7 @@ include { SNAPATAC2_SELECTFEATURES as SNAPATAC2_SELECTFEATURES_CONCAT } from '..
 include { SNAPATAC2_SCRUBLET } from '../../../modules/local/snapatac2/scrublet'
 include { SNAPATAC2_SPECTRAL } from '../../../modules/local/snapatac2/spectral'
 include { RAPIDS_SINGLECELL_NEIGHBORS } from '../../../modules/local/rapids_singlecell/neighbors'
+include { RAPIDS_SINGLECELL_LEIDEN } from '../../../modules/local/rapids_singlecell/leiden'
 
 workflow ATAC {
 
@@ -101,6 +102,9 @@ workflow ATAC {
 
     // STEP12: Compute KNN graph with rapids-singlecell
     RAPIDS_SINGLECELL_NEIGHBORS( SNAPATAC2_SPECTRAL.out.h5ad )
+
+    // STEP13: Run Leiden clustering with rapids-singlecell
+    RAPIDS_SINGLECELL_LEIDEN( RAPIDS_SINGLECELL_NEIGHBORS.out.h5ad )
 
     // emit:
     // bam      = SAMTOOLS_SORT.out.bam           // channel: [ val(meta), [ bam ] ]
