@@ -2,10 +2,15 @@ include { SNAPATAC2_FRAGMENTS2H5AD } from '../../../modules/local/snapatac2/frag
 include { AMULET } from '../../../modules/local/amulet'
 include { NORMALIZECELLRANGERMETRICS } from '../../../modules/local/normalizecellrangermetrics'
 include { ANNDATA_ATTACHCSV as ATTACH_CRMETRICS_AMULET } from '../../../modules/local/anndata/attachcsv'
+include { ANNDATA_CONCATONDISK } from '../../../modules/local/anndata/concatondisk'
 include { SNAPATAC2_METRICS } from '../../../modules/local/snapatac2/metrics'
 include { SNAPATAC2_QUALITYCONTROL } from '../../../modules/local/snapatac2/qualitycontrol'
 include { SNAPATAC2_ADDTILES } from '../../../modules/local/snapatac2/addtiles'
 include { SNAPATAC2_SELECTFEATURES } from '../../../modules/local/snapatac2/selectfeatures'
+include { SNAPATAC2_SELECTFEATURES as SNAPATAC2_SELECTFEATURES_CONCAT } from '../../../modules/local/snapatac2/selectfeatures'
+include { SNAPATAC2_SCRUBLET } from '../../../modules/local/snapatac2/scrublet'
+include { SNAPATAC2_SPECTRAL } from '../../../modules/local/snapatac2/spectral'
+include { RAPIDS_SINGLECELL_NEIGHBORS } from '../../../modules/local/rapids_singlecell/neighbors'
 
 workflow ATAC {
 
@@ -73,6 +78,29 @@ workflow ATAC {
 
     // STEP7: Select accessible features
     SNAPATAC2_SELECTFEATURES( SNAPATAC2_ADDTILES.out.h5ad, blacklist )
+
+    // STEP8: Compute and filter scrublet doublets
+    SNAPATAC2_SCRUBLET( SNAPATAC2_SELECTFEATURES.out.h5ad )
+
+    // STEP9: Concatenate scrublet-processed AnnData objects on disk
+    scrublet_h5ads = SNAPATAC2_SCRUBLET.out.h5ad
+        .collect(flat: false)
+        .map { list ->
+            def ids  = list.collect { it -> it[0].id }  // Get meta from the first tuple in the list
+            def h5ads = list.collect { it -> it[1] }     // Collect all h5ad paths from the list
+            tuple( [id: ids], h5ads )
+        }
+
+    ANNDATA_CONCATONDISK( scrublet_h5ads )
+
+    // STEP10: Select features on the concatenated object
+    SNAPATAC2_SELECTFEATURES_CONCAT( ANNDATA_CONCATONDISK.out.h5ad, blacklist )
+
+    // STEP11: Calculate Spectral Embedding
+    SNAPATAC2_SPECTRAL( SNAPATAC2_SELECTFEATURES_CONCAT.out.h5ad )
+
+    // STEP12: Compute KNN graph with rapids-singlecell
+    RAPIDS_SINGLECELL_NEIGHBORS( SNAPATAC2_SPECTRAL.out.h5ad )
 
     // emit:
     // bam      = SAMTOOLS_SORT.out.bam           // channel: [ val(meta), [ bam ] ]
