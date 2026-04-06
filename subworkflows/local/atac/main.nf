@@ -13,6 +13,7 @@ include { SNAPATAC2_SPECTRAL } from '../../../modules/local/snapatac2/spectral'
 include { RAPIDS_SINGLECELL_NEIGHBORS } from '../../../modules/local/rapids_singlecell/neighbors'
 include { RAPIDS_SINGLECELL_LEIDEN } from '../../../modules/local/rapids_singlecell/leiden'
 include { RAPIDS_SINGLECELL_UMAP } from '../../../modules/local/rapids_singlecell/umap'
+include { SCANPY_EMBEDDING_PLOT } from '../../../modules/local/scanpy/embeddingplot'
 
 workflow ATAC {
 
@@ -109,6 +110,9 @@ workflow ATAC {
 
     // STEP14: Compute UMAP embedding with rapids-singlecell
     RAPIDS_SINGLECELL_UMAP( RAPIDS_SINGLECELL_LEIDEN.out.h5ad )
+
+    // STEP15: Plot embedding with Leiden labels
+    SCANPY_EMBEDDING_PLOT( RAPIDS_SINGLECELL_UMAP.out.h5ad )
 
     // emit:
     // bam      = SAMTOOLS_SORT.out.bam           // channel: [ val(meta), [ bam ] ]
