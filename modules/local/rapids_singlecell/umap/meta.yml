@@ -1,0 +1,49 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/nf-core/modules/master/modules/meta-schema.json
+name: "rapids_singlecell_umap"
+description: "Compute UMAP embeddings with rapids-singlecell."
+keywords:
+  - rapids-singlecell
+  - umap
+  - embedding
+tools:
+  - "rapids-singlecell":
+      description: "GPU-accelerated single-cell preprocessing and analytics."
+      homepage: "https://rapids-singlecell.readthedocs.io"
+      documentation: "https://rapids-singlecell.readthedocs.io"
+      tool_dev_url: "https://github.com/scverse/rapids_singlecell"
+      licence: ["Apache-2.0"]
+input:
+  - - meta:
+        type: map
+        description: |
+          Groovy Map containing sample information
+          e.g. `[ id:'sample1' ]`
+    - h5ad:
+        type: file
+        description: Input AnnData file containing neighborhood graph data.
+        pattern: "*.h5ad"
+output:
+  h5ad:
+    - - meta:
+          type: map
+          description: |
+            Groovy Map containing sample information
+            e.g. `[ id:'sample1' ]`
+      - "*_umap.h5ad":
+          type: file
+          description: AnnData file with UMAP coordinates in .obsm.
+          pattern: "*.h5ad"
+  versions_rapids_singlecell:
+    - - "${task.process}":
+          type: string
+          description: The name of the process
+      - "rapids-singlecell":
+          type: string
+          description: The name of the tool
+      - "python -c 'import rapids_singlecell; print(rapids_singlecell.__version__)'":
+          type: eval
+          description: The expression to obtain the version of the tool
+authors:
+  - "@claptar"
+maintainers:
+  - "@claptar"

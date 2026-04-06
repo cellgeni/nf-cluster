@@ -1,0 +1,49 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/nf-core/modules/master/modules/meta-schema.json
+name: "anndata_concatondisk"
+description: "Concatenate multiple AnnData files into a single h5ad on disk."
+keywords:
+  - anndata
+  - concatenate
+  - h5ad
+tools:
+  - "anndata":
+      description: "Annotated data matrix object for single-cell omics."
+      homepage: "https://anndata.readthedocs.io"
+      documentation: "https://anndata.readthedocs.io"
+      tool_dev_url: "https://github.com/scverse/anndata"
+      licence: ["BSD-3-Clause"]
+input:
+  - - meta:
+        type: map
+        description: |
+          Groovy Map containing sample information
+          e.g. `[ id:['sample1','sample2'] ]`
+    - h5ads:
+        type: file
+        description: List of input AnnData files.
+        pattern: "*.h5ad"
+output:
+  h5ad:
+    - - new_meta:
+          type: map
+          description: |
+            Groovy Map containing concatenated sample information
+            e.g. `[ id:'concatenated', oldid:[...] ]`
+      - "*.h5ad":
+          type: file
+          description: Concatenated AnnData file.
+          pattern: "*.h5ad"
+  versions_anndata:
+    - - "${task.process}":
+          type: string
+          description: The name of the process
+      - "anndata":
+          type: string
+          description: The name of the tool
+      - "python -c 'import anndata; print(anndata.__version__)'":
+          type: eval
+          description: The expression to obtain the version of the tool
+authors:
+  - "@claptar"
+maintainers:
+  - "@claptar"
