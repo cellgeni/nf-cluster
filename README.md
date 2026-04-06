@@ -9,7 +9,7 @@
 
 ## Introduction
 
-cellgeni/nf-cluster is a Nextflow pipeline for single-cell ATAC processing from Cell Ranger ARC output directories to integrated clustering and visualization outputs.
+`cellgeni/nf-cluster` is a Nextflow pipeline for single-cell ATAC processing from Cell Ranger ARC output directories to integrated clustering and visualization outputs.
 
 The current ATAC workflow performs:
 
@@ -23,10 +23,6 @@ The current ATAC workflow performs:
 - Scanpy embedding plots colored by Leiden and selected metadata columns
 
 ## Usage
-
-> [!NOTE]
-> If you are new to Nextflow and nf-core, please refer to [this page](https://nf-co.re/docs/usage/installation) on how to set-up Nextflow.
-
 Prepare a sample sheet with the following columns:
 
 ```csv
@@ -41,7 +37,6 @@ Run the ATAC workflow:
 
 ```bash
 nextflow run cellgeni/nf-cluster \
-   -profile singularity \
    --input examples/samples.csv \
    --atac.genome hg38 \
    --outdir results
@@ -51,40 +46,36 @@ You can also provide parameters through a YAML/JSON params file:
 
 ```bash
 nextflow run cellgeni/nf-cluster \
-   -profile singularity \
    -params-file params.yml
 ```
-
-> [!WARNING]
-> Please provide pipeline parameters via the CLI or Nextflow `-params-file` option. Custom config files including those provided by the `-c` Nextflow option can be used to provide any configuration _**except for parameters**_; see [docs](https://nf-co.re/docs/usage/getting_started/configuration#custom-configuration-files).
 
 ## Key Parameters
 
 - Required:
-   - --input: CSV sample sheet with sample,path
-   - --atac.genome: genome label used by the ATAC workflow
+   - `--input`: CSV sample sheet with sample,path
+   - `--atac.genome`: genome label used by the ATAC workflow
 - Common:
-   - --random_state
-   - --outdir
+   - `--random_state`
+   - `--outdir`
 - RAPIDS neighbors:
-   - --neighbors.n_neighbors
-   - --neighbors.algorithm
-   - --neighbors.metric
-   - --neighbors.method
+   - `--neighbors.n_neighbors`
+   - `--neighbors.algorithm`
+   - `--neighbors.metric`
+   - `--neighbors.method`
 - RAPIDS Leiden:
-   - --leiden.resolution
-   - --leiden.theta
-   - --leiden.n_iterations
-   - --leiden.key_added
+   - `--leiden.resolution`
+   - `--leiden.theta`
+   - `--leiden.n_iterations`
+   - `--leiden.key_added`
 - RAPIDS UMAP:
-   - --umap.min_dist
-   - --umap.spread
-   - --umap.n_components
-   - --umap.init_pos
+   - `--umap.min_dist`
+   - `--umap.spread`
+   - `--umap.n_components`
+   - `--umap.init_pos`
 - Embedding plotting:
-   - --embeddingplot.basis (default: X_umap)
-   - --embeddingplot.color (list, default includes leiden)
-   - --embeddingplot.legend_loc
+   - `--embeddingplot.basis` (default: X_umap)
+   - `--embeddingplot.color` (list, default includes leiden)
+   - `--embeddingplot.legend_loc`
 
 ## Output Overview
 
