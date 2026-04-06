@@ -7,7 +7,6 @@ import cupy as cp
 import numpy as np
 import rapids_singlecell as rsc
 import rmm
-import scipy.sparse as sp
 from rmm.allocators.cupy import rmm_cupy_allocator
 
 rmm.reinitialize(
@@ -107,38 +106,6 @@ def main() -> None:
     adata = ad.read_h5ad(args.filepath)
     print(f"Input h5ad file:\n{adata}")
 
-    original_x_dtype = None
-    cast_mode = None
-
-    # cupyx sparse only supports '?fdFD' dtypes; cast unsupported sparse dtypes.
-    if sp.issparse(adata.X) and adata.X.dtype.char not in "?fdFD":
-        original_x_dtype = adata.X.dtype
-
-        # Preserve boolean-like integer matrices by using bool on GPU and restoring
-        # the original integer dtype when moving data back to CPU.
-        if np.issubdtype(original_x_dtype, np.integer):
-            bool_data = adata.X.data.astype(np.bool_)
-            roundtrip_data = bool_data.astype(original_x_dtype, copy=False)
-
-            if np.array_equal(roundtrip_data, adata.X.data):
-                print(
-                    f"Casting adata.X from {original_x_dtype} to bool for GPU compatibility"
-                )
-                adata.X = adata.X.astype(np.bool_)
-                cast_mode = "bool"
-            else:
-                print(
-                    f"Casting adata.X from {original_x_dtype} to float32 for GPU compatibility"
-                )
-                adata.X = adata.X.astype(np.float32)
-                cast_mode = "float32"
-        else:
-            print(
-                f"Casting adata.X from {original_x_dtype} to float32 for GPU compatibility"
-            )
-            adata.X = adata.X.astype(np.float32)
-            cast_mode = "float32"
-
     if args.neighbors_key is not None and args.obsp is not None:
         raise ValueError("--neighbors-key and --obsp are mutually exclusive")
 
@@ -155,17 +122,13 @@ def main() -> None:
         use_weights=args.use_weights,
         neighbors_key=args.neighbors_key,
         obsp=args.obsp,
-        dtype=np.dtype(args.dtype),
+        dtype=args.dtype,
         use_dask=args.use_dask,
         copy=False,
     )
 
     # Transfer results back to CPU
     rsc.get.anndata_to_CPU(adata)
-
-    if cast_mode == "bool" and original_x_dtype is not None:
-        print(f"Restoring adata.X dtype from bool to {original_x_dtype}")
-        adata.X = adata.X.astype(original_x_dtype)
 
     print(f"Output h5ad file:\n{adata}")
     adata.write_h5ad(args.output)
