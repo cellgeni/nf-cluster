@@ -12,6 +12,7 @@ include { SNAPATAC2_SCRUBLET } from '../../../modules/local/snapatac2/scrublet'
 include { SNAPATAC2_SPECTRAL } from '../../../modules/local/snapatac2/spectral'
 include { RAPIDS_SINGLECELL_NEIGHBORS } from '../../../modules/local/rapids_singlecell/neighbors'
 include { RAPIDS_SINGLECELL_LEIDEN } from '../../../modules/local/rapids_singlecell/leiden'
+include { RAPIDS_SINGLECELL_UMAP } from '../../../modules/local/rapids_singlecell/umap'
 
 workflow ATAC {
 
@@ -105,6 +106,9 @@ workflow ATAC {
 
     // STEP13: Run Leiden clustering with rapids-singlecell
     RAPIDS_SINGLECELL_LEIDEN( RAPIDS_SINGLECELL_NEIGHBORS.out.h5ad )
+
+    // STEP14: Compute UMAP embedding with rapids-singlecell
+    RAPIDS_SINGLECELL_UMAP( RAPIDS_SINGLECELL_LEIDEN.out.h5ad )
 
     // emit:
     // bam      = SAMTOOLS_SORT.out.bam           // channel: [ val(meta), [ bam ] ]
