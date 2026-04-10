@@ -8,8 +8,11 @@ include { SNAPATAC2_QUALITYCONTROL } from '../../../modules/local/snapatac2/qual
 include { SNAPATAC2_ADDTILES } from '../../../modules/local/snapatac2/addtiles'
 include { SNAPATAC2_SELECTFEATURES } from '../../../modules/local/snapatac2/selectfeatures'
 include { SNAPATAC2_SELECTFEATURES as SNAPATAC2_SELECTFEATURES_CONCAT } from '../../../modules/local/snapatac2/selectfeatures'
+include { SNAPATAC2_MOSTACCESSIBLEFEATURES } from '../../../modules/local/snapatac2/mostaccessiblefeatures'
 include { SNAPATAC2_SCRUBLET } from '../../../modules/local/snapatac2/scrublet'
 include { SNAPATAC2_SPECTRAL } from '../../../modules/local/snapatac2/spectral'
+include { SNAPATAC2_CUPYSPECTRAL } from '../../../modules/local/snapatac2/cupyspectral'
+include { SNAPATAC2_CUPYSPECTRAL as SNAPATAC2_CUPYSPECTRAL_MOSTACCESSIBLE } from '../../../modules/local/snapatac2/cupyspectral'
 include { RAPIDS_SINGLECELL_NEIGHBORS } from '../../../modules/local/rapids_singlecell/neighbors'
 include { RAPIDS_SINGLECELL_LEIDEN } from '../../../modules/local/rapids_singlecell/leiden'
 include { RAPIDS_SINGLECELL_UMAP } from '../../../modules/local/rapids_singlecell/umap'
@@ -89,30 +92,37 @@ workflow ATAC {
     scrublet_h5ads = SNAPATAC2_SCRUBLET.out.h5ad
         .collect(flat: false)
         .map { list ->
-            def ids  = list.collect { it -> it[0].id }  // Get meta from the first tuple in the list
-            def h5ads = list.collect { it -> it[1] }     // Collect all h5ad paths from the list
+            def sorted = list.toSorted { a, b -> a[0].id <=> b[0].id }
+            def ids  = sorted.collect { it -> it[0].id }  // Get meta from the first tuple in the list
+            def h5ads = sorted.collect { it -> it[1] }     // Collect all h5ad paths from the list
             tuple( [id: ids], h5ads )
         }
 
     ANNDATA_CONCATONDISK( scrublet_h5ads )
 
-    // STEP10: Select features on the concatenated object
-    SNAPATAC2_SELECTFEATURES_CONCAT( ANNDATA_CONCATONDISK.out.h5ad, blacklist )
+    // STEP10: Select most accessible features on the concatenated object
+    SNAPATAC2_MOSTACCESSIBLEFEATURES( ANNDATA_CONCATONDISK.out.h5ad, blacklist )
 
-    // STEP11: Calculate Spectral Embedding
-    SNAPATAC2_SPECTRAL( SNAPATAC2_SELECTFEATURES_CONCAT.out.h5ad )
+    // STEP11: Calculate Spectral Embedding for selected features
+    SNAPATAC2_CUPYSPECTRAL_MOSTACCESSIBLE( SNAPATAC2_MOSTACCESSIBLEFEATURES.out.h5ad )
 
-    // STEP12: Compute KNN graph with rapids-singlecell
-    RAPIDS_SINGLECELL_NEIGHBORS( SNAPATAC2_SPECTRAL.out.h5ad )
+    // STEP11: Refine selected features on the concatenated object
+    // SNAPATAC2_SELECTFEATURES_CONCAT( SNAPATAC2_MOSTACCESSIBLEFEATURES.out.h5ad, blacklist )
 
-    // STEP13: Run Leiden clustering with rapids-singlecell
-    RAPIDS_SINGLECELL_LEIDEN( RAPIDS_SINGLECELL_NEIGHBORS.out.h5ad )
+    // // STEP12: Calculate Spectral Embedding
+    // SNAPATAC2_CUPYSPECTRAL( SNAPATAC2_SELECTFEATURES_CONCAT.out.h5ad )
 
-    // STEP14: Compute UMAP embedding with rapids-singlecell
-    RAPIDS_SINGLECELL_UMAP( RAPIDS_SINGLECELL_LEIDEN.out.h5ad )
+    // // STEP13: Compute KNN graph with rapids-singlecell
+    // RAPIDS_SINGLECELL_NEIGHBORS( SNAPATAC2_CUPYSPECTRAL.out.h5ad )
 
-    // STEP15: Plot embedding with Leiden labels
-    SCANPY_EMBEDDING_PLOT( RAPIDS_SINGLECELL_UMAP.out.h5ad )
+    // // STEP14: Run Leiden clustering with rapids-singlecell
+    // RAPIDS_SINGLECELL_LEIDEN( RAPIDS_SINGLECELL_NEIGHBORS.out.h5ad )
+
+    // // STEP15: Compute UMAP embedding with rapids-singlecell
+    // RAPIDS_SINGLECELL_UMAP( RAPIDS_SINGLECELL_LEIDEN.out.h5ad )
+
+    // // STEP16: Plot embedding with Leiden labels
+    // SCANPY_EMBEDDING_PLOT( RAPIDS_SINGLECELL_UMAP.out.h5ad )
 
     // emit:
     // bam      = SAMTOOLS_SORT.out.bam           // channel: [ val(meta), [ bam ] ]

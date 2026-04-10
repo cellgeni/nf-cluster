@@ -1,0 +1,76 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/nf-core/modules/master/modules/meta-schema.json
+# # TODO nf-core: Add a description of the module and list keywords
+name: "snapatac2_mostaccessiblefeatures"
+description: Select most accessible ATAC features on an AnnData object using SnapATAC2.
+keywords:
+  - snapatac2
+  - atac
+  - features
+  - genomics
+tools:
+  ## TODO nf-core: Add a description and other details for the software below
+  - "snapatac2":
+      description: "SnapATAC2: Single-cell epigenomics analysis pipeline."
+      homepage: "https://kzhang.org/SnapATAC2"
+      documentation: "https://kzhang.org/SnapATAC2"
+      tool_dev_url: "https://github.com/kaizhang/SnapATAC2"
+      doi: ""
+      licence: ["MIT"]
+      identifier: null
+
+input:
+  - - meta:
+        type: map
+        description: |
+          Groovy Map containing sample information
+          e.g. `[ id:'sample1' ]`
+    - h5ad:
+        type: file
+        description: Input AnnData object in h5ad format.
+        pattern: "*.h5ad"
+        ontologies:
+          - edam: "http://edamontology.org/format_3590" # H5AD
+  - - blacklist:
+        type: file
+        description: BED file with genomic regions to exclude from feature selection.
+        pattern: "*.{bed,bed.gz}"
+
+output:
+  h5ad:
+    - - meta:
+          type: map
+          description: |
+            Groovy Map containing sample information
+            e.g. `[ id:'sample1' ]`
+      - "*_features.h5ad":
+          type: file
+          description: AnnData object with selected accessible features in `.var['selected']`.
+          pattern: "*_features.h5ad"
+          ontologies:
+            - edam: "http://edamontology.org/format_3590" # H5AD
+  versions_snapatac2:
+    - - "${task.process}":
+          type: string
+          description: The name of the process
+      - "snapatac2":
+          type: string
+          description: The name of the tool
+      - "snapatac2 --version":
+          type: eval
+          description: The expression to obtain the version of the tool
+
+topics:
+  versions:
+    - - ${task.process}:
+          type: string
+          description: The name of the process
+      - snapatac2:
+          type: string
+          description: The name of the tool
+      - snapatac2 --version:
+          type: eval
+          description: The expression to obtain the version of the tool
+authors:
+  - "@claptar"
+maintainers:
+  - "@claptar"
