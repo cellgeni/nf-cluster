@@ -1,0 +1,51 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/nf-core/modules/master/modules/meta-schema.json
+name: "snapatac2_cupyspectral"
+description: "Compute spectral embedding with a CuPy/CuPyX GPU implementation aligned to SnapATAC2 cosine spectral behavior."
+keywords:
+  - snapatac2
+  - cupy
+  - gpu
+  - spectral
+  - embedding
+tools:
+  - "cupy":
+      description: "CuPy: NumPy and SciPy-compatible array library accelerated by CUDA."
+      homepage: "https://cupy.dev/"
+      documentation: "https://docs.cupy.dev/"
+      tool_dev_url: "https://github.com/cupy/cupy"
+      licence: ["MIT"]
+input:
+  - - meta:
+        type: map
+        description: |
+          Groovy Map containing sample information
+          e.g. `[ id:'sample1' ]`
+    - h5ad:
+        type: file
+        description: Input AnnData file.
+        pattern: "*.h5ad"
+output:
+  h5ad:
+    - - meta:
+          type: map
+          description: |
+            Groovy Map containing sample information
+            e.g. `[ id:'sample1' ]`
+      - "*_spectral.h5ad":
+          type: file
+          description: AnnData file with spectral embedding stored in obsm.
+          pattern: "*.h5ad"
+    versions_cupy:
+    - - "${task.process}":
+          type: string
+          description: The name of the process
+      - "cupy":
+          type: string
+          description: The name of the tool
+      - "python -c 'import cupy; print(cupy.__version__)'":
+          type: eval
+          description: The expression to obtain the version of the tool
+authors:
+  - "@claptar"
+maintainers:
+  - "@claptar"
