@@ -1,0 +1,75 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/nf-core/modules/master/modules/meta-schema.json
+# # TODO nf-core: Add a description of the module and list keywords
+name: "rapids_singlecell_selectfeatures"
+description: Select features on AnnData using RAPIDS single-cell operations and write an h5ad output.
+keywords:
+  - rapids-singlecell
+  - atac
+  - feature-selection
+  - genomics
+tools:
+  - "rapids-singlecell":
+      description: "RAPIDS single-cell: GPU-accelerated single-cell analysis."
+      homepage: "https://rapids-singlecell.readthedocs.io"
+      documentation: "https://rapids-singlecell.readthedocs.io"
+      tool_dev_url: "https://github.com/scverse/rapids_singlecell"
+      doi: ""
+      licence: ["BSD-3-Clause"]
+      identifier: null
+
+input:
+  - - meta:
+        type: map
+        description: |
+          Groovy Map containing sample information
+          e.g. `[ id:'sample1' ]`
+    - h5ad:
+        type: file
+        description: Input AnnData object in h5ad format.
+        pattern: "*.h5ad"
+        ontologies:
+          - edam: "http://edamontology.org/format_3590" # H5AD
+  - - blacklist:
+        type: file
+        description: BED file with genomic regions to exclude from feature selection.
+        pattern: "*.{bed,bed.gz}"
+
+output:
+  h5ad:
+    - - meta:
+          type: map
+          description: |
+            Groovy Map containing sample information
+            e.g. `[ id:'sample1' ]`
+      - "*_features.h5ad":
+          type: file
+          description: AnnData object with selected features in `.var['selected']`.
+          pattern: "*_features.h5ad"
+          ontologies:
+            - edam: "http://edamontology.org/format_3590" # H5AD
+  versions_rapids_singlecell:
+    - - "${task.process}":
+          type: string
+          description: The name of the process
+      - "rapids-singlecell":
+          type: string
+          description: The name of the tool
+      - "rapids-singlecell --version":
+          type: eval
+          description: The expression to obtain the version of the tool
+
+topics:
+  versions:
+    - - ${task.process}:
+          type: string
+          description: The name of the process
+      - rapids-singlecell:
+          type: string
+          description: The name of the tool
+      - rapids-singlecell --version:
+          type: eval
+          description: The expression to obtain the version of the tool
+authors:
+  - "@claptar"
+maintainers:
+  - "@claptar"
