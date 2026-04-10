@@ -23,6 +23,7 @@ process SNAPATAC2_SELECTFEATURES {
     select_features.py \\
         ${h5ad} \\
         ${prefix}_features.h5ad \\
+        --blacklist ${blacklist} \\
         ${args}
     """
 }
