@@ -11,7 +11,7 @@ import rapids_singlecell as rsc
 import scipy.sparse as sp
 
 rmm.reinitialize(
-    managed_memory=False,  # Allows oversubscription
+    managed_memory=True,  # Allows oversubscription
     pool_allocator=False,  # default is False
     devices=0,  # GPU device IDs to register. By default registers only GPU 0.
 )
