@@ -1,7 +1,7 @@
 def filesSizeInGB(file) {
 	def totalSize = file.collect { it.size() }.sum()
     def sizeGb = totalSize / (1024d * 1024d * 1024d)
-    def sizeGbRoundedUp = Math.ceil(sizeGb / 10 ) as long
+    def sizeGbRoundedUp = Math.ceil(sizeGb / 2 ) as long
     return "${sizeGbRoundedUp}.GB" as MemoryUnit
 }
 
