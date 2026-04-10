@@ -13,6 +13,7 @@ include { SNAPATAC2_SCRUBLET } from '../../../modules/local/snapatac2/scrublet'
 include { SNAPATAC2_SPECTRAL } from '../../../modules/local/snapatac2/spectral'
 include { SNAPATAC2_CUPYSPECTRAL } from '../../../modules/local/snapatac2/cupyspectral'
 include { SNAPATAC2_CUPYSPECTRAL as SNAPATAC2_CUPYSPECTRAL_MOSTACCESSIBLE } from '../../../modules/local/snapatac2/cupyspectral'
+include { RAPIDS_SINGLECELL_SELECTFEATURES } from '../../../modules/local/rapids_singlecell/selectfeatures'
 include { RAPIDS_SINGLECELL_NEIGHBORS } from '../../../modules/local/rapids_singlecell/neighbors'
 include { RAPIDS_SINGLECELL_LEIDEN } from '../../../modules/local/rapids_singlecell/leiden'
 include { RAPIDS_SINGLECELL_UMAP } from '../../../modules/local/rapids_singlecell/umap'
@@ -106,23 +107,23 @@ workflow ATAC {
     // STEP11: Calculate Spectral Embedding for selected features
     SNAPATAC2_CUPYSPECTRAL_MOSTACCESSIBLE( SNAPATAC2_MOSTACCESSIBLEFEATURES.out.h5ad )
 
-    // STEP11: Refine selected features on the concatenated object
-    // SNAPATAC2_SELECTFEATURES_CONCAT( SNAPATAC2_MOSTACCESSIBLEFEATURES.out.h5ad, blacklist )
+    // STEP12: Select features with RAPIDS on the concatenated object
+    RAPIDS_SINGLECELL_SELECTFEATURES( SNAPATAC2_CUPYSPECTRAL_MOSTACCESSIBLE.out.h5ad, blacklist )
 
-    // // STEP12: Calculate Spectral Embedding
-    // SNAPATAC2_CUPYSPECTRAL( SNAPATAC2_SELECTFEATURES_CONCAT.out.h5ad )
+    // STEP13: Calculate Spectral Embedding
+    SNAPATAC2_CUPYSPECTRAL( RAPIDS_SINGLECELL_SELECTFEATURES.out.h5ad )
 
-    // // STEP13: Compute KNN graph with rapids-singlecell
-    // RAPIDS_SINGLECELL_NEIGHBORS( SNAPATAC2_CUPYSPECTRAL.out.h5ad )
+    // STEP14: Compute KNN graph with rapids-singlecell
+    RAPIDS_SINGLECELL_NEIGHBORS( SNAPATAC2_CUPYSPECTRAL.out.h5ad )
 
-    // // STEP14: Run Leiden clustering with rapids-singlecell
-    // RAPIDS_SINGLECELL_LEIDEN( RAPIDS_SINGLECELL_NEIGHBORS.out.h5ad )
+    // STEP15: Run Leiden clustering with rapids-singlecell
+    RAPIDS_SINGLECELL_LEIDEN( RAPIDS_SINGLECELL_NEIGHBORS.out.h5ad )
 
-    // // STEP15: Compute UMAP embedding with rapids-singlecell
-    // RAPIDS_SINGLECELL_UMAP( RAPIDS_SINGLECELL_LEIDEN.out.h5ad )
+    // STEP16: Compute UMAP embedding with rapids-singlecell
+    RAPIDS_SINGLECELL_UMAP( RAPIDS_SINGLECELL_LEIDEN.out.h5ad )
 
-    // // STEP16: Plot embedding with Leiden labels
-    // SCANPY_EMBEDDING_PLOT( RAPIDS_SINGLECELL_UMAP.out.h5ad )
+    // STEP17: Plot embedding with Leiden labels
+    SCANPY_EMBEDDING_PLOT( RAPIDS_SINGLECELL_UMAP.out.h5ad )
 
     // emit:
     // bam      = SAMTOOLS_SORT.out.bam           // channel: [ val(meta), [ bam ] ]

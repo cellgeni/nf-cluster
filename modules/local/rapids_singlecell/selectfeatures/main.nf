@@ -6,7 +6,7 @@ def fileSizeInGB(file) {
 
 process RAPIDS_SINGLECELL_SELECTFEATURES {
     tag "$meta.id"
-    container 'quay.io/cellgeni/rapids-singlecell:0.14.1'
+    container 'quay.io/cellgeni/snapatac2:2.9.0'
 
     input:
     tuple val(meta), path(h5ad)

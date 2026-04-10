@@ -276,11 +276,10 @@ def select_features_gpu(
         return_sparse=False,
     )
 
-    
+    typer.echo(f"Aggregated anndata: {agg}")
     typer.echo(f"Finding most accessible features after iteration...")
-    
-    rpm = cp.asarray(agg.X)
-    var = cp.var(cp.log1p(rpm), axis=0)
+
+    var = cp.var(cp.log1p(agg.layers["sum"]), axis=0)
     selected_features = cp.argsort(var)[::-1][:n_features]
 
     blacklist_mask_cpu = _blacklist_mask_cpu(adata.var_names, blacklist)
@@ -299,6 +298,8 @@ def select_features_gpu(
 
     if "_gpu_leiden" in adata.obs:
         del adata.obs["_gpu_leiden"]
+    if "_gpu_leiden" in adata.uns:
+        del adata.uns["_gpu_leiden"]
     if "X_spectral" in adata.obsm:
         del adata.obsm["X_spectral"]
     if "neighbors" in adata.uns:
