@@ -22,6 +22,40 @@ cp.cuda.set_allocator(rmm_cupy_allocator)
 
 app = typer.Typer()
 
+_ROW_SCALE_KERNEL = cp.RawKernel(
+    r"""
+extern "C" __global__
+void row_scale(const int n_rows, const int* indptr, float* data, const float* scales) {
+    int row = blockIdx.x * blockDim.x + threadIdx.x;
+    if (row < n_rows) {
+        const float s = scales[row];
+        for (int j = indptr[row]; j < indptr[row + 1]; ++j) {
+            data[j] *= s;
+        }
+    }
+}
+""",
+    "row_scale",
+)
+
+
+def scale_rows_inplace(X_csr, scales):
+    """Multiply each row by its scale, in place."""
+    scales = cp.asarray(scales, dtype=cp.float32)
+    n_rows = X_csr.shape[0]
+    blocks = ((n_rows + 255) // 256,)
+    _ROW_SCALE_KERNEL(blocks, (256,), (n_rows, X_csr.indptr, X_csr.data, scales))
+    return X_csr
+
+
+def row_sq_sum(X_csr):
+    """Row-wise sum of squares for CSR without sparse-sparse multiply."""
+    data_sq = X_csr.data * X_csr.data
+    prefix = cp.empty(data_sq.size + 1, dtype=cp.float32)
+    prefix[0] = 0.0
+    cp.cumsum(data_sq, out=prefix[1:])
+    return prefix[X_csr.indptr[1:]] - prefix[X_csr.indptr[:-1]]
+
 
 def to_gpu_csr(X):
     """Convert scipy/cupyx sparse matrix to cupyx CSR float32."""
@@ -54,8 +88,8 @@ def idf_gpu(X_csr):
     where df is the number of cells with a nonzero count per feature.
     """
     n_cells = X_csr.shape[0]
-    X_csc = X_csr.tocsc(copy=True)
-    df = cp.diff(X_csc.indptr).astype(cp.float32)
+    n_cells, n_features = X_csr.shape
+    df = cp.bincount(X_csr.indices, minlength=n_features).astype(cp.float32, copy=False)
     return cp.log(cp.float32(n_cells) / (1.0 + df))
 
 
@@ -74,13 +108,13 @@ def row_l2_normalize(X_csr, eps=1e-12):
     row_sq = cp.asarray(X_csr.multiply(X_csr).sum(axis=1)).ravel()
     row_norm = cp.sqrt(cp.maximum(row_sq, eps))
     inv_row = 1.0 / row_norm
-    return cpx_sparse.diags(inv_row) @ X_csr
+    return scale_rows_inplace(X_csr, inv_row)
 
 
 def snapatac2_cosine_spectral_gpu(
     X,
     n_comps=30,
-    feature_weights=None,       # if None, use SnapATAC2-style IDF
+    feature_weights=None,  # if None, use SnapATAC2-style IDF
     weighted_by_sd=True,
     random_state=0,
     eps=1e-8,
@@ -123,7 +157,9 @@ def snapatac2_cosine_spectral_gpu(
     else:
         w = cp.asarray(feature_weights, dtype=cp.float32)
         if w.shape[0] != n_features:
-            raise ValueError("feature_weights length must match number of selected features")
+            raise ValueError(
+                "feature_weights length must match number of selected features"
+            )
 
     # 1) IDF weighting
     Xw = scale_columns_inplace(X, w)
@@ -142,7 +178,7 @@ def snapatac2_cosine_spectral_gpu(
     dinv = 1.0 / degree
 
     # \tilde{X} = D^{-1/2} X_norm
-    Xtilde = cpx_sparse.diags(dinv_sqrt) @ Xn
+    Xtilde = scale_rows_inplace(Xn, dinv_sqrt)
 
     # Matrix-free operator:
     # \tilde{W} v = \tilde{X} (\tilde{X}^T v) - D^{-1} v
@@ -209,7 +245,16 @@ def main(
     parsed_features = None if features.lower() == "none" else features
 
     # Subset features if a mask is provided
-    X = adata[:, adata.var[parsed_features]].X if parsed_features is not None else adata.X
+    X = (
+        adata[:, adata.var[parsed_features]].X.copy()
+        if parsed_features is not None
+        else adata.X
+    )
+
+    typer.echo(f"selected_features = {int(adata.var['selected'].sum())}")
+    typer.echo(f"shape = {X.shape}")
+    typer.echo(f"nnz = {int(X.nnz)}")
+    typer.echo(f"nnz fits int32 = {int(X.nnz) < 2_147_483_647}")
 
     evals, evecs = snapatac2_cosine_spectral_gpu(
         X,
