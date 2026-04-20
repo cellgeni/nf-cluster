@@ -5,7 +5,7 @@ def fileSizeInGB(file) {
 }
 
 process RAPIDS_SINGLECELL_NEIGHBORS {
-    tag "$meta.id"
+    tag "KNN $meta.id"
     container 'quay.io/cellgeni/rapids-singlecell:0.14.1'
 
     input:
