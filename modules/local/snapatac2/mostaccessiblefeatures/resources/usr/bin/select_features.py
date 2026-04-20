@@ -6,6 +6,7 @@ import typer
 import numpy as np
 import anndata as ad
 import snapatac2._snapatac2 as internal
+from tqdm.auto import tqdm
 
 
 app = typer.Typer(add_completion=False)
@@ -41,11 +42,8 @@ def select_most_accessible_features(
     filter_upper_quantile: float,
     blacklist: Path | None = None,
 ) -> np.ndarray:
-    count = np.zeros(adata.shape[1], dtype=float)
 
-    for batch, _, _ in adata.chunked_X(2000):
-        count += np.ravel(batch.sum(axis=0))
-
+    count = np.ravel(adata.X.sum(axis=0))
     adata.var["count"] = count
 
     selected_features = _find_most_accessible_features(
