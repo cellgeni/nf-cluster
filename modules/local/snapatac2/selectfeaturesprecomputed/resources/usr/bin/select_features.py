@@ -4,6 +4,7 @@ from pathlib import Path
 
 import typer
 import snapatac2._snapatac2 as internal
+import scanpy as sc
 import anndata as ad
 import numpy as np
 import scipy.sparse as sp
@@ -92,29 +93,41 @@ def main(
         else None
     )
 
+    typer.echo(
+        f"Running feature selection with n_iter={n_iter}, n_features={n_features}, "
+        f"blacklist={'provided' if blacklist is not None else 'not provided'}, "
+        f"subset_selected={subset_selected}, chunk_size={chunk_size}"
+    )
+
     selected_features = np.array([], dtype=np.int64)
     for _ in range(n_iter):
-        _, group_sums = aggregate_sum_by_group(
-            adata, groupby=groupby, chunk_size=chunk_size
-        )
-        lib_sizes = group_sums.sum(axis=1, keepdims=True)
+        typer.echo("Aggregate data by group")
+        X = sc.get.aggregate(adata, by=groupby, func="sum", axis=0).layers["sum"]
+        typer.echo("Calculate library sizes")
+        lib_sizes = X.sum(axis=1, keepdims=True)
         lib_sizes[lib_sizes == 0] = 1.0
-        rpm = group_sums / (lib_sizes / 1_000_000.0)
+        typer.echo("Calculate RPM")
+        rpm = X / (lib_sizes / 1_000_000.0)
+        typer.echo("Calculate variance")
         var = np.var(np.log1p(rpm), axis=0)
+        typer.echo("Select top features")
         selected_features = np.argsort(var)[::-1][:n_features]
 
         # Apply blacklist to the result
         if blacklist_mask is not None:
+            typer.echo("Applying blacklist to selected features")
             selected_features = selected_features[
                 np.logical_not(blacklist_mask[selected_features])
             ]
 
+    typer.echo(f"Selected {selected_features.size} features after {n_iter} iterations")
     result = np.zeros(adata.shape[1], dtype=bool)
     result[selected_features] = True
     adata.var["selected"] = result
 
     # Drop unselected features if subset_selected is True
     if subset_selected:
+        typer.echo("Subsetting AnnData to selected features")
         adata = adata[:, adata.var["selected"].to_numpy()].copy()
 
     # Write the output h5ad file
