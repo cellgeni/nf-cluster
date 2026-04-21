@@ -108,12 +108,19 @@ def main() -> None:
 
     if args.neighbors_key is not None and args.obsp is not None:
         raise ValueError("--neighbors-key and --obsp are mutually exclusive")
+    
+    # Create a small copy of adata with only the obs and the neighbors metadata to minimize GPU memory usage.
+    slim = ad.AnnData(
+        obs=adata.obs,
+        obsp=adata.obsp,
+        uns=adata.uns
+    )
 
     # Transfer data to GPU
-    rsc.get.anndata_to_GPU(adata)
+    rsc.get.anndata_to_GPU(slim)
 
     rsc.tl.leiden(
-        adata,
+        slim,
         resolution=args.resolution,
         random_state=args.random_state,
         theta=args.theta,
@@ -128,7 +135,10 @@ def main() -> None:
     )
 
     # Transfer results back to CPU
-    rsc.get.anndata_to_CPU(adata)
+    rsc.get.anndata_to_CPU(slim)
+
+    # Attach the Leiden labels to the original adata and write output.
+    adata.obs[args.key_added] = slim.obs[args.key_added].values
 
     print(f"Output h5ad file:\n{adata}")
     adata.write_h5ad(args.output)
