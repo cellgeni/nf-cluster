@@ -109,14 +109,21 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
 
-    adata = ad.read_h5ad(args.filepath)
+    adata = ad.read_h5ad(args.filepath, backed="r")
     print(f"Input h5ad file:\n{adata}")
 
+    # Select elements of adata to transfer to GPU based on the neighbors_key and key_added arguments to minimize GPU memory usage.
+    slim = ad.AnnData(
+        obs=adata.obs,
+        obsp=adata.obsp,
+        uns=adata.uns
+    )
+
     # Transfer data to GPU
-    rsc.get.anndata_to_GPU(adata)
+    rsc.get.anndata_to_GPU(slim)
 
     rsc.tl.umap(
-        adata,
+        slim,
         min_dist=args.min_dist,
         spread=args.spread,
         n_components=args.n_components,
@@ -133,7 +140,15 @@ def main() -> None:
     )
 
     # Transfer results back to CPU
-    rsc.get.anndata_to_CPU(adata)
+    rsc.get.anndata_to_CPU(slim)
+
+    # Move the UMAP embedding from the slim AnnData back to the original adata and write output.
+    if args.key_added is not None and args.key_added in slim.obsm:
+        adata.obsm[args.key_added] = slim.obsm[args.key_added]
+        adata.uns[args.key_added] = slim.uns[args.key_added]
+    else:
+        adata.obsm["X_umap"] = slim.obsm["X_umap"]
+        adata.uns["umap"] = slim.uns["umap"]
 
     print(f"Output h5ad file:\n{adata}")
     adata.write_h5ad(args.output)
