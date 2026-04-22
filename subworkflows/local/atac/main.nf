@@ -13,9 +13,12 @@ include { SNAPATAC2_SCRUBLET } from '../../../modules/local/snapatac2/scrublet'
 include { SNAPATAC2_SPECTRAL } from '../../../modules/local/snapatac2/spectral'
 include { SNAPATAC2_CUPYSPECTRAL } from '../../../modules/local/snapatac2/cupyspectral'
 include { SNAPATAC2_CUPYSPECTRAL as SNAPATAC2_CUPYSPECTRAL_MOSTACCESSIBLE } from '../../../modules/local/snapatac2/cupyspectral'
+include { SNAPATAC2_SELECTFEATURESPRECOMPUTED } from '../../../modules/local/snapatac2/selectfeaturesprecomputed'
 include { RAPIDS_SINGLECELL_SELECTFEATURES } from '../../../modules/local/rapids_singlecell/selectfeatures'
 include { RAPIDS_SINGLECELL_NEIGHBORS } from '../../../modules/local/rapids_singlecell/neighbors'
+include { RAPIDS_SINGLECELL_NEIGHBORS as RAPIDS_SINGLECELL_NEIGHBORS_SELECTFEATURES } from '../../../modules/local/rapids_singlecell/neighbors'
 include { RAPIDS_SINGLECELL_LEIDEN } from '../../../modules/local/rapids_singlecell/leiden'
+include { RAPIDS_SINGLECELL_LEIDEN as RAPIDS_SINGLECELL_LEIDEN_SELECTFEATURES } from '../../../modules/local/rapids_singlecell/leiden'
 include { RAPIDS_SINGLECELL_UMAP } from '../../../modules/local/rapids_singlecell/umap'
 include { SCANPY_EMBEDDING_PLOT } from '../../../modules/local/scanpy/embeddingplot'
 
@@ -101,28 +104,34 @@ workflow ATAC {
 
     ANNDATA_CONCATONDISK( scrublet_h5ads )
 
-    // STEP10: Select most accessible features on the concatenated object
+    // STEP10a: Select most accessible features on the concatenated object
     SNAPATAC2_MOSTACCESSIBLEFEATURES( ANNDATA_CONCATONDISK.out.h5ad, blacklist )
 
-    // STEP11: Calculate Spectral Embedding for selected features
+    // STEP10b: Calculate Spectral Embedding for selected features
     SNAPATAC2_CUPYSPECTRAL_MOSTACCESSIBLE( SNAPATAC2_MOSTACCESSIBLEFEATURES.out.h5ad )
 
-    // STEP12: Select features with RAPIDS on the concatenated object
-    RAPIDS_SINGLECELL_SELECTFEATURES( SNAPATAC2_CUPYSPECTRAL_MOSTACCESSIBLE.out.h5ad, blacklist )
+    // STEP10c: Compute KNN graph with rapids-singlecell for selected features
+    RAPIDS_SINGLECELL_NEIGHBORS_SELECTFEATURES( SNAPATAC2_CUPYSPECTRAL_MOSTACCESSIBLE.out.h5ad )
 
-    // STEP13: Calculate Spectral Embedding
-    SNAPATAC2_CUPYSPECTRAL( RAPIDS_SINGLECELL_SELECTFEATURES.out.h5ad )
+    // STEP10d: Run Leiden clustering with rapids-singlecell for selected features
+    RAPIDS_SINGLECELL_LEIDEN_SELECTFEATURES( RAPIDS_SINGLECELL_NEIGHBORS_SELECTFEATURES.out.h5ad )
+    
+    // STEP10e: Select features using precomputed Leiden labels
+    SNAPATAC2_SELECTFEATURESPRECOMPUTED( RAPIDS_SINGLECELL_LEIDEN_SELECTFEATURES.out.h5ad, blacklist )
 
-    // STEP14: Compute KNN graph with rapids-singlecell
+    // STEP11: Calculate Spectral Embedding
+    SNAPATAC2_CUPYSPECTRAL( SNAPATAC2_SELECTFEATURESPRECOMPUTED.out.h5ad )
+
+    // STEP12: Compute KNN graph with rapids-singlecell
     RAPIDS_SINGLECELL_NEIGHBORS( SNAPATAC2_CUPYSPECTRAL.out.h5ad )
 
-    // STEP15: Run Leiden clustering with rapids-singlecell
+    // STEP13: Run Leiden clustering with rapids-singlecell
     RAPIDS_SINGLECELL_LEIDEN( RAPIDS_SINGLECELL_NEIGHBORS.out.h5ad )
 
-    // STEP16: Compute UMAP embedding with rapids-singlecell
+    // STEP14: Compute UMAP embedding with rapids-singlecell
     RAPIDS_SINGLECELL_UMAP( RAPIDS_SINGLECELL_LEIDEN.out.h5ad )
 
-    // STEP17: Plot embedding with Leiden labels
+    // STEP15: Plot embedding with Leiden labels
     SCANPY_EMBEDDING_PLOT( RAPIDS_SINGLECELL_UMAP.out.h5ad )
 
     // emit:
