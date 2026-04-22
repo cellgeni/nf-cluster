@@ -8,6 +8,7 @@ import scanpy as sc
 import anndata as ad
 import numpy as np
 import scipy.sparse as sp
+from tqdm.auto import tqdm
 
 app = typer.Typer()
 
@@ -27,7 +28,7 @@ def aggregate_sum_by_group(
     n_groups = unique_groups.size
     sums = np.zeros((n_groups, adata.n_vars), dtype=np.float32)
 
-    for chunk, start, stop in adata.chunked_X(chunk_size):
+    for chunk, start, stop in tqdm(adata.chunked_X(chunk_size), total=adata.n_obs // chunk_size + 1):
         chunk_groups = inverse[start:stop]
         present_groups = np.unique(chunk_groups)
 
@@ -76,6 +77,10 @@ def main(
         default=False,
         help="Whether to subset the AnnData object to only include the selected features. If False, the selected features will be added to .var['selected'] and the original feature matrix will be retained.",
     ),
+    chunked: bool = typer.Option(
+        default=False,
+        help="Whether to process the data in chunks. This can reduce memory usage for large datasets, but may increase runtime. If False, the entire dataset will be loaded into memory.",
+    ),
     chunk_size: int = typer.Option(
         default=10000,
         help="Number of rows to process at a time when computing mean accessibility for feature selection. This can be adjusted based on the available memory.",
@@ -102,7 +107,10 @@ def main(
     selected_features = np.array([], dtype=np.int64)
     for _ in range(n_iter):
         typer.echo("Aggregate data by group")
-        X = sc.get.aggregate(adata, by=groupby, func="sum", axis=0).layers["sum"]
+        if chunked:
+            _, X = aggregate_sum_by_group(adata, groupby=groupby, chunk_size=chunk_size)
+        else:
+            X = sc.get.aggregate(adata, by=groupby, func="sum", axis=0).layers["sum"]
         typer.echo("Calculate library sizes")
         lib_sizes = X.sum(axis=1, keepdims=True)
         lib_sizes[lib_sizes == 0] = 1.0
@@ -128,7 +136,7 @@ def main(
     # Drop unselected features if subset_selected is True
     if subset_selected:
         typer.echo("Subsetting AnnData to selected features")
-        adata = adata[:, adata.var["selected"].to_numpy()].copy()
+        adata = adata[:, adata.var["selected"].to_numpy()]
 
     # Write the output h5ad file
     typer.echo(f"Output h5ad file:\n{adata}")
