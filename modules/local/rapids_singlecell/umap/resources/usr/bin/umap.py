@@ -116,6 +116,7 @@ def main() -> None:
     slim = ad.AnnData(
         obs=adata.obs,
         obsp=adata.obsp,
+        obsm=adata.obsm,
         uns=adata.uns
     )
 
